@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>仿markdown效果</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+<script type="text/javascript" src="vue.js"></script>
+<script type="text/javascript" src="marked.min.js"></script>
+<script type="text/javascript" src="moment.js"></script>
+</head>
+<body>
+	<div id="notebook">
+
+		<aside class="sidebar">
+			<div class="toolbar">
+				<button @click="addNote">Add Note</button>
+			</div>
+			<div class="notes">			
+				<div class="note" v-for="note in sortedNotes" @click="selectNote(note)" :class="{selected : note == selectedNote}">{{note.title}}</div>
+			</div>
+			
+		</aside>
+		
+		<template v-if="selectedNote">
+			<section class="main">
+				<div class="toolbar">
+					<input type="text" v-model="selectedNote.title" placeholder="Rename note title">
+					<button @click="favoriteNote">{{selectedNote.favorite ? "star" : "star_border"}}</button>
+					<button @click="removeNote">delete</button>
+				</div>
+				<textarea  name="" id="" cols="30" rows="10" v-model="selectedNote.content"></textarea>
+				<div class="toolbar status-bar">
+					<span class="date">
+						<span class="label">Created</span>
+						<span class="value">{{selectedNote.id | date}}</span>
+					</span>
+				</div>
+			</section>
+
+			<aside class="preview" v-html="preview">
+
+			</aside>
+		</template>
+		
+	</div>
+<script type="text/javascript">
+	Vue.filter("date", time => moment(time).format("DD/MM/YY, HH:mm"))
+
+	new Vue({
+		el: "#notebook",
+		data(){
+			return {
+				notes: JSON.parse(localStorage.getItem("notes")) || [],
+				selectedId : localStorage.getItem("selected-id") || null,
+			}
+		},
+		methods : {
+			addNote(){
+				const time = Date.now();
+				const note = {
+					id : time,
+					title : "New note " + (this.notes.length+1),
+					content : "Hello, this is note " + (this.notes.length+1),
+					favorite : false,
+				}
+				this.notes.push(note);
+			},
+			selectNote(item){
+				this.selectedId = item.id
+			},
+			saveNotes(){
+				localStorage.setItem("notes", JSON.stringify(this.notes))
+			},
+			removeNote(){
+				if(this.selectedNote && confirm("Delete the note?")){
+					const index = this.notes.indexOf(this.selectedNote)
+					this.notes.splice(index, 1)
+				}
+			},
+			favoriteNote(){
+				this.selectedNote.favorite = !this.selectedNote.favorite
+			}
+		},
+		computed : {
+			preview(){
+				return marked(this.selectedNote.content || "");
+			},
+			selectedNote(){
+				return this.notes.find(note=> note.id == this.selectedId) || ""
+			},
+			sortedNotes(){
+				return this.notes.slice().sort((a, b)=> (a.favorite == b.favorite) ? 0 : a.favorite ? -1 : 1)
+			}
+		},
+		watch : {
+			notes: {
+				handler: "saveNotes",
+				deep: true,
+			},
+			selectedId(val){
+				localStorage.setItem("selected-id", val);
+			},
+		}
+	})
+</script>
+</body>
+</html>
